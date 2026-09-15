@@ -1,0 +1,83 @@
+spring:
+  application:
+    name: api-gateway
+
+  cloud:
+    gateway:
+      server:
+        webflux:
+          routes:
+
+            # =========================
+            # AUTH SERVICE
+            # =========================
+            - id: auth-service
+              uri: http://localhost:8081
+              predicates:
+                - Path=/api/auth/**
+              filters:
+                - RewritePath=/api/auth/(?<segment>.*), /auth/$\{segment}
+
+            # =========================
+            # COURSE SERVICE
+            # =========================
+            - id: course-service
+              uri: http://localhost:8082
+              predicates:
+                - Path=/api/courses,/api/courses/**
+              filters:
+                - RewritePath=/api/courses(?<segment>/?.*), /courses$\{segment}
+
+            # =========================
+            # REGISTRATION SERVICE
+            # =========================
+            - id: registration-service
+              uri: http://localhost:8083
+              predicates:
+                - Path=/api/registrations,/api/registrations/**
+              filters:
+                - RewritePath=/api/registrations(?<segment>/?.*), /registrations$\{segment}
+
+            # =========================
+            # PUBLIC COURSE API
+            # =========================
+            - id: public-course-service
+              uri: http://localhost:8082
+              predicates:
+                - Path=/api/public/courses
+              filters:
+                - RewritePath=/api/public/courses, /courses
+
+          # =========================
+          # CORS
+          # =========================
+          globalcors:
+            cors-configurations:
+              '[/**]':
+                allowedOrigins:
+                  - "http://localhost:5173"
+                allowedMethods:
+                  - GET
+                  - POST
+                  - PUT
+                  - PATCH
+                  - DELETE
+                  - OPTIONS
+                allowedHeaders:
+                  - "*"
+                allowCredentials: true
+
+server:
+  port: 8080
+
+# =========================
+# JWT
+# =========================
+jwt:
+  secret: crs-jwt-secret-key-2026-very-secret
+
+# =========================
+# PARTNER API KEY
+# =========================
+partner:
+  api-key: crs-partner-key-2026
