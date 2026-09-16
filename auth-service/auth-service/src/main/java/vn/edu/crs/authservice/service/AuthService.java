@@ -19,28 +19,36 @@ public class AuthService {
 
     public LoginResponse login(LoginRequest request) {
 
-        User user = userRepository.findByUsername(request.getUsername())
+        User user = userRepository
+                .findByUsername(request.getUsername())
                 .orElseThrow(() ->
-                        new RuntimeException("Username hoac password khong dung"));
+                        new RuntimeException(
+                                "Username hoac password khong dung"
+                        )
+                );
 
         if (!passwordEncoder.matches(
                 request.getPassword(),
-                user.getPassword())) {
-
+                user.getPassword()
+        )) {
             throw new RuntimeException(
-                    "Username hoac password khong dung");
+                    "Username hoac password khong dung"
+            );
         }
 
+        // Tạo JWT mới có thêm userId
         String token = jwtUtil.generateToken(
+                user.getId(),
                 user.getUsername(),
                 user.getRole()
         );
 
+        // Trả userId + token + username + role
         return new LoginResponse(
+                user.getId(),
                 token,
                 user.getUsername(),
-                user.getRole(),
-                user.getId()
+                user.getRole()
         );
     }
 }
