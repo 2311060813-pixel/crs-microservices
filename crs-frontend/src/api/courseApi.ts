@@ -1,12 +1,19 @@
 import axiosClient from './axiosClient';
 import type {
     Course,
-    PagedResponse,
     CourseFormValues,
 } from '../types/course';
 
+export interface PagedResponse<T> {
+    content: T[];
+    totalPages: number;
+    totalElements: number;
+    size: number;
+    number: number;
+}
+
 export const getCourses = (
-    keyword?: string,
+    keyword = '',
     page = 0,
     size = 10,
 ) => {
@@ -23,29 +30,29 @@ export const getCourses = (
 };
 
 const toPayload = (
-    values: CourseFormValues,
+    data: CourseFormValues,
 ) => ({
-    tenMonHoc: values.tenMonHoc.trim(),
-    soTinChi: Number(values.soTinChi),
-    soChoToiDa: Number(values.soChoToiDa),
+    tenMonHoc: data.tenMonHoc.trim(),
+    soTinChi: Number(data.soTinChi),
+    soChoToiDa: Number(data.soChoToiDa),
 });
 
 export const createCourse = (
-    values: CourseFormValues,
+    data: CourseFormValues,
 ) => {
     return axiosClient.post<Course>(
         '/api/courses',
-        toPayload(values),
+        toPayload(data),
     );
 };
 
 export const updateCourse = (
     id: number,
-    values: CourseFormValues,
+    data: CourseFormValues,
 ) => {
     return axiosClient.put<Course>(
         `/api/courses/${id}`,
-        toPayload(values),
+        toPayload(data),
     );
 };
 
@@ -53,6 +60,15 @@ export const deleteCourse = (
     id: number,
 ) => {
     return axiosClient.delete(
+        `/api/courses/${id}`,
+    );
+};
+
+// Lấy thông tin một môn học theo ID
+export const getCourseById = (
+    id: number,
+) => {
+    return axiosClient.get<Course>(
         `/api/courses/${id}`,
     );
 };

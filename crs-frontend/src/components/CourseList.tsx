@@ -6,8 +6,14 @@ interface CourseListProps {
     state: LoadState;
     errorMessage: string;
     onRetry: () => void;
+
+    // Dùng cho Admin
     onEdit?: (course: Course) => void;
     onDelete?: (course: Course) => void;
+
+    // Dùng cho Student
+    onRegister?: (course: Course) => void;
+    registeringId?: number | null;
 }
 
 export default function CourseList({
@@ -17,7 +23,11 @@ export default function CourseList({
                                        onRetry,
                                        onEdit,
                                        onDelete,
+                                       onRegister,
+                                       registeringId,
                                    }: CourseListProps) {
+
+    // Đang tải
     if (state === 'loading') {
         return (
             <p>
@@ -26,18 +36,27 @@ export default function CourseList({
         );
     }
 
+    // Có lỗi
     if (state === 'error') {
         return (
-            <div style={{ color: '#b91c1c' }}>
+            <div
+                style={{
+                    color: '#b91c1c',
+                }}
+            >
                 <p>{errorMessage}</p>
 
-                <button onClick={onRetry}>
+                <button
+                    type="button"
+                    onClick={onRetry}
+                >
                     Thử lại
                 </button>
             </div>
         );
     }
 
+    // Không có dữ liệu
     if (state === 'empty') {
         return (
             <p>
@@ -45,6 +64,13 @@ export default function CourseList({
             </p>
         );
     }
+
+    // Hiện cột "Thao tác" nếu có ít nhất
+    // một trong các chức năng Sửa, Xóa, Đăng ký
+    const showActions =
+        Boolean(onEdit) ||
+        Boolean(onDelete) ||
+        Boolean(onRegister);
 
     return (
         <table
@@ -62,7 +88,7 @@ export default function CourseList({
             >
                 <th
                     style={{
-                        padding: '10px',
+                        padding: 12,
                     }}
                 >
                     Tên môn học
@@ -70,7 +96,7 @@ export default function CourseList({
 
                 <th
                     style={{
-                        padding: '10px',
+                        padding: 12,
                     }}
                 >
                     Số tín chỉ
@@ -78,16 +104,16 @@ export default function CourseList({
 
                 <th
                     style={{
-                        padding: '10px',
+                        padding: 12,
                     }}
                 >
                     Số chỗ còn lại
                 </th>
 
-                {(onEdit || onDelete) && (
+                {showActions && (
                     <th
                         style={{
-                            padding: '10px',
+                            padding: 12,
                         }}
                     >
                         Thao tác
@@ -107,7 +133,7 @@ export default function CourseList({
                 >
                     <td
                         style={{
-                            padding: '10px',
+                            padding: 12,
                         }}
                     >
                         {course.tenMonHoc}
@@ -115,7 +141,7 @@ export default function CourseList({
 
                     <td
                         style={{
-                            padding: '10px',
+                            padding: 12,
                         }}
                     >
                         {course.soTinChi}
@@ -123,7 +149,7 @@ export default function CourseList({
 
                     <td
                         style={{
-                            padding: '10px',
+                            padding: 12,
                             color:
                                 course.soChoConLai === 0
                                     ? '#b91c1c'
@@ -134,14 +160,16 @@ export default function CourseList({
                         {course.soChoToiDa}
                     </td>
 
-                    {(onEdit || onDelete) && (
+                    {showActions && (
                         <td
                             style={{
-                                padding: '10px',
+                                padding: 12,
                             }}
                         >
+                            {/* Sửa - Admin */}
                             {onEdit && (
                                 <button
+                                    type="button"
                                     onClick={() =>
                                         onEdit(course)
                                     }
@@ -150,17 +178,53 @@ export default function CourseList({
                                 </button>
                             )}
 
+                            {/* Xóa - Admin */}
                             {onDelete && (
                                 <button
+                                    type="button"
                                     onClick={() =>
                                         onDelete(course)
                                     }
                                     style={{
-                                        marginLeft: 8,
+                                        marginLeft:
+                                            onEdit
+                                                ? 8
+                                                : 0,
                                         color: '#b91c1c',
                                     }}
                                 >
                                     Xóa
+                                </button>
+                            )}
+
+                            {/* Đăng ký - Student */}
+                            {onRegister && (
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        onRegister(course)
+                                    }
+                                    disabled={
+                                        course.soChoConLai ===
+                                        0 ||
+                                        registeringId ===
+                                        course.id
+                                    }
+                                    style={{
+                                        marginLeft:
+                                            onEdit ||
+                                            onDelete
+                                                ? 8
+                                                : 0,
+                                    }}
+                                >
+                                    {registeringId ===
+                                    course.id
+                                        ? 'Đang đăng ký...'
+                                        : course.soChoConLai ===
+                                        0
+                                            ? 'Hết chỗ'
+                                            : 'Đăng ký'}
                                 </button>
                             )}
                         </td>

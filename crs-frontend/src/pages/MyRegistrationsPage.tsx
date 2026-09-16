@@ -1,74 +1,180 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
+    useCallback,
+    useEffect,
+    useState,
+} from 'react';
+
+import axios from 'axios';
+
+import {
+    getMyRegistrations,
     cancelRegistration,
-    getRegistrationsByStudent,
 } from '../api/registrationApi';
+
+import { getCourseById } from '../api/courseApi';
+
+import { useToast } from '../hooks/useToast';
+
+import Toast from '../components/Toast';
+import Navbar from '../components/Navbar';
+
 import type { Registration } from '../types/registration';
-import { useAuth } from '../context/AuthContext';
+import type { Course } from '../types/course';
+import type { ApiErrorResponse } from '../types/apiError';
 
-function MyRegistrationsPage() {
-    const { auth } = useAuth();
-    const navigate = useNavigate();
+interface RegistrationRow extends Registration {
+    courseName: string;
+}
 
-    const [registrations, setRegistrations] = useState<Registration[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
-    const [cancellingId, setCancellingId] = useState<number | null>(null);
-    const [message, setMessage] = useState('');
+export default function MyRegistrationsPage() {
+    const [rows, setRows] =
+        useState<RegistrationRow[]>([]);
 
-    const loadRegistrations = async (): Promise<void> => {
-        if (!auth?.studentId) {
-            setError('Không xác định được mã sinh viên.');
-            setLoading(false);
-            return;
-        }
+    const [loading, setLoading] =
+        useState(true);
 
-        try {
-            setLoading(true);
-            setError('');
+    const [loadError, setLoadError] =
+        useState<string | null>(null);
 
-            const response = await getRegistrationsByStudent(auth.studentId);
+    const [cancellingId, setCancellingId] =
+        useState<number | null>(null);
 
-            setRegistrations(response.data);
-        } catch (err) {
-            console.error(err);
-            setError('Không thể tải danh sách đăng ký.');
-        } finally {
-            setLoading(false);
-        }
-    };
+    const {
+        toast,
+        showToast,
+        clearToast,
+    } = useToast();
+
+    const loadData = useCallback(
+        async (): Promise<void> => {
+            setLoadError(null);
+
+            try {
+                const response =
+                    await getMyRegistrations();
+
+                const activeRegistrations =
+                    response.data.filter(
+                        (registration) =>
+                            registration.trangThai ===
+                            'DA_DANG_KY',
+                    );
+
+                const enriched =
+                    await Promise.all(
+                        activeRegistrations.map(
+                            async (registration) => {
+                                try {
+                                    const courseResponse =
+                                        await getCourseById(
+                                            registration.courseId,
+                                        );
+
+                                    const course =
+                                        courseResponse.data as Course;
+
+                                    return {
+                                        ...registration,
+                                        courseName:
+                                        course.tenMonHoc,
+                                    };
+                                } catch {
+                                    return {
+                                        ...registration,
+                                        courseName:
+                                            `Môn học #${registration.courseId} (không tìm thấy thông tin)`,
+                                    };
+                                }
+                            },
+                        ),
+                    );
+
+                setRows(enriched);
+            } catch (err: unknown) {
+                let message =
+                    'Không tải được danh sách đăng ký.';
+
+                if (
+                    axios.isAxiosError<ApiErrorResponse>(
+                        err,
+                    ) &&
+                    err.response?.data?.message
+                ) {
+                    message =
+                        err.response.data.message;
+                }
+
+                setLoadError(message);
+                setRows([]);
+            } finally {
+                setLoading(false);
+            }
+        },
+        [],
+    );
 
     useEffect(() => {
-        const fetchRegistrations = async (): Promise<void> => {
-            await loadRegistrations();
+        let cancelled = false;
+
+        const fetchData = async () => {
+            if (cancelled) {
+                return;
+            }
+
+            setLoading(true);
+            await loadData();
         };
 
-        void fetchRegistrations();
-    }, [auth?.studentId]);
+        void fetchData();
 
-    const handleCancel = async (registrationId: number): Promise<void> => {
-        const confirmed = window.confirm(
-            'Bạn có chắc chắn muốn hủy đăng ký học phần này không?',
-        );
+        return () => {
+            cancelled = true;
+        };
+    }, [loadData]);
+
+    const handleCancel = async (
+        row: RegistrationRow,
+    ): Promise<void> => {
+        const confirmed =
+            window.confirm(
+                `Hủy đăng ký môn "${row.courseName}"?`,
+            );
 
         if (!confirmed) {
             return;
         }
 
+        setCancellingId(row.id);
+
         try {
-            setCancellingId(registrationId);
-            setMessage('');
-            setError('');
+            await cancelRegistration(row.id);
 
-            await cancelRegistration(registrationId);
+            showToast(
+                `Đã hủy đăng ký môn "${row.courseName}"`,
+                'success',
+            );
 
-            setMessage('Hủy đăng ký thành công.');
+            setLoading(true);
 
-            await loadRegistrations();
-        } catch (err) {
-            console.error(err);
-            setError('Hủy đăng ký thất bại.');
+            await loadData();
+        } catch (err: unknown) {
+            let message =
+                'Hủy đăng ký không thành công.';
+
+            if (
+                axios.isAxiosError<ApiErrorResponse>(
+                    err,
+                ) &&
+                err.response?.data?.message
+            ) {
+                message =
+                    err.response.data.message;
+            }
+
+            showToast(
+                message,
+                'error',
+            );
         } finally {
             setCancellingId(null);
         }
@@ -79,49 +185,11 @@ function MyRegistrationsPage() {
             style={{
                 minHeight: '100vh',
                 background: '#f5f7fb',
-                fontFamily: 'Arial, sans-serif',
+                fontFamily:
+                    'Arial, sans-serif',
             }}
         >
-            <header
-                style={{
-                    background: '#2563eb',
-                    color: 'white',
-                    padding: '16px 24px',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                }}
-            >
-                <div>
-                    <h2 style={{ margin: 0 }}>
-                        CRS - Quản lý học phần
-                    </h2>
-
-                    <div
-                        style={{
-                            marginTop: '5px',
-                            fontSize: '14px',
-                        }}
-                    >
-                        Sinh viên: {auth?.username}
-                    </div>
-                </div>
-
-                <button
-                    onClick={() => navigate('/courses')}
-                    style={{
-                        padding: '9px 16px',
-                        background: 'white',
-                        color: '#2563eb',
-                        border: 'none',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        fontWeight: 600,
-                    }}
-                >
-                    Danh sách khóa học
-                </button>
-            </header>
+            <Navbar />
 
             <main
                 style={{
@@ -130,118 +198,179 @@ function MyRegistrationsPage() {
                     padding: '30px 20px',
                 }}
             >
-                <h1>Đăng ký của tôi</h1>
+                <h1>
+                    Môn học đã đăng ký
+                </h1>
 
-                {loading && <p>Đang tải danh sách đăng ký...</p>}
-
-                {error && (
-                    <div
-                        style={{
-                            padding: '12px',
-                            marginBottom: '20px',
-                            background: '#ffecec',
-                            color: '#c00',
-                            borderRadius: '6px',
-                        }}
-                    >
-                        {error}
-                    </div>
+                {loading && (
+                    <p>
+                        Đang tải...
+                    </p>
                 )}
 
-                {message && (
-                    <div
-                        style={{
-                            padding: '12px',
-                            marginBottom: '20px',
-                            background: '#eaf7ea',
-                            color: '#166534',
-                            borderRadius: '6px',
-                        }}
-                    >
-                        {message}
-                    </div>
-                )}
+                {!loading &&
+                    loadError && (
+                        <div
+                            style={{
+                                padding: 12,
+                                marginBottom: 20,
+                                background:
+                                    '#ffecec',
+                                color: '#b91c1c',
+                                borderRadius: 6,
+                            }}
+                        >
+                            <p>
+                                {loadError}
+                            </p>
 
-                {!loading && !error && registrations.length === 0 && (
-                    <p>Bạn chưa đăng ký học phần nào.</p>
-                )}
-
-                {!loading && registrations.length > 0 && (
-                    <div
-                        style={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '15px',
-                        }}
-                    >
-                        {registrations.map((registration) => (
-                            <div
-                                key={registration.id}
-                                style={{
-                                    background: 'white',
-                                    padding: '20px',
-                                    borderRadius: '10px',
-                                    boxShadow: '0 2px 10px rgba(0,0,0,0.08)',
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setLoading(
+                                        true,
+                                    );
+                                    void loadData();
                                 }}
                             >
-                                <p>
-                                    <strong>Mã đăng ký:</strong>{' '}
-                                    {registration.id}
-                                </p>
+                                Thử lại
+                            </button>
+                        </div>
+                    )}
 
-                                <p>
-                                    <strong>Mã khóa học:</strong>{' '}
-                                    {registration.courseId}
-                                </p>
+                {!loading &&
+                    !loadError &&
+                    rows.length === 0 && (
+                        <p>
+                            Bạn chưa đăng ký môn học nào.
+                        </p>
+                    )}
 
-                                <p>
-                                    <strong>Ngày đăng ký:</strong>{' '}
-                                    {new Date(
-                                        registration.ngayDangKy,
-                                    ).toLocaleString('vi-VN')}
-                                </p>
+                {!loading &&
+                    !loadError &&
+                    rows.length > 0 && (
+                        <table
+                            style={{
+                                width: '100%',
+                                borderCollapse:
+                                    'collapse',
+                                background:
+                                    '#ffffff',
+                            }}
+                        >
+                            <thead>
+                            <tr
+                                style={{
+                                    textAlign:
+                                        'left',
+                                    borderBottom:
+                                        '2px solid #333',
+                                }}
+                            >
+                                <th
+                                    style={{
+                                        padding: 12,
+                                    }}
+                                >
+                                    Tên môn học
+                                </th>
 
-                                <p>
-                                    <strong>Trạng thái:</strong>{' '}
-                                    {registration.trangThai}
-                                </p>
+                                <th
+                                    style={{
+                                        padding: 12,
+                                    }}
+                                >
+                                    Ngày đăng ký
+                                </th>
 
-                                {registration.trangThai === 'DA_DANG_KY' && (
-                                    <button
-                                        onClick={() => {
-                                            void handleCancel(registration.id);
-                                        }}
-                                        disabled={
-                                            cancellingId === registration.id
+                                <th
+                                    style={{
+                                        padding: 12,
+                                    }}
+                                >
+                                    Thao tác
+                                </th>
+                            </tr>
+                            </thead>
+
+                            <tbody>
+                            {rows.map(
+                                (row) => (
+                                    <tr
+                                        key={
+                                            row.id
                                         }
                                         style={{
-                                            padding: '10px 18px',
-                                            border: 'none',
-                                            borderRadius: '6px',
-                                            background:
-                                                cancellingId === registration.id
-                                                    ? '#999'
-                                                    : '#dc2626',
-                                            color: 'white',
-                                            cursor:
-                                                cancellingId === registration.id
-                                                    ? 'not-allowed'
-                                                    : 'pointer',
-                                            fontWeight: 600,
+                                            borderBottom:
+                                                '1px solid #eee',
                                         }}
                                     >
-                                        {cancellingId === registration.id
-                                            ? 'Đang hủy...'
-                                            : 'Hủy đăng ký'}
-                                    </button>
-                                )}
-                            </div>
-                        ))}
-                    </div>
+                                        <td
+                                            style={{
+                                                padding: 12,
+                                            }}
+                                        >
+                                            {
+                                                row.courseName
+                                            }
+                                        </td>
+
+                                        <td
+                                            style={{
+                                                padding: 12,
+                                            }}
+                                        >
+                                            {new Date(
+                                                row.ngayDangKy,
+                                            ).toLocaleString(
+                                                'vi-VN',
+                                            )}
+                                        </td>
+
+                                        <td
+                                            style={{
+                                                padding: 12,
+                                            }}
+                                        >
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    void handleCancel(
+                                                        row,
+                                                    );
+                                                }}
+                                                disabled={
+                                                    cancellingId ===
+                                                    row.id
+                                                }
+                                            >
+                                                {cancellingId ===
+                                                row.id
+                                                    ? 'Đang hủy...'
+                                                    : 'Hủy đăng ký'}
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ),
+                            )}
+                            </tbody>
+                        </table>
+                    )}
+
+                {toast && (
+                    <Toast
+                        message={
+                            toast.message
+                        }
+                        type={
+                            toast.type
+                        }
+                        onClose={
+                            clearToast
+                        }
+                    />
                 )}
             </main>
         </div>
     );
 }
-
-export default MyRegistrationsPage;

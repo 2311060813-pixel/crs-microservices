@@ -43,6 +43,7 @@ function getSavedAuth(): LoginResponse | null {
         localStorage.removeItem(AUTH_KEY);
         localStorage.removeItem(TOKEN_KEY);
         localStorage.removeItem(USER_KEY);
+
         return null;
     }
 }
@@ -56,19 +57,24 @@ export function AuthProvider({
         );
 
     const login = (data: LoginResponse) => {
+        // Lưu toàn bộ thông tin đăng nhập
+        // bao gồm userId, token, username, role
         localStorage.setItem(
             AUTH_KEY,
             JSON.stringify(data),
         );
 
+        // Lưu riêng JWT
         localStorage.setItem(
             TOKEN_KEY,
             data.token,
         );
 
+        // Lưu thông tin user hiện tại
         localStorage.setItem(
             USER_KEY,
             JSON.stringify({
+                userId: data.userId,
                 username: data.username,
                 role: data.role,
             }),

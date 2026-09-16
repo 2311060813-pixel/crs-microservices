@@ -2,8 +2,10 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 
 import LoginPage from './pages/LoginPage';
 import CoursesPage from './pages/CoursesPage';
+import RegisterCoursePage from './pages/RegisterCoursePage';
 import MyRegistrationsPage from './pages/MyRegistrationsPage';
 import AdminCoursesPage from './pages/AdminCoursesPage';
+import ApiKeysPage from './pages/ApiKeysPage';
 
 import ProtectedRoute from './components/ProtectedRoute';
 import { useAuth } from './context/AuthContext';
@@ -13,6 +15,7 @@ function App() {
 
     return (
         <Routes>
+
             {/* Trang mặc định */}
             <Route
                 path="/"
@@ -50,10 +53,30 @@ function App() {
                 }
             />
 
-            {/* Danh sách môn học - Public */}
+            {/* Danh sách môn học */}
             <Route
                 path="/courses"
                 element={<CoursesPage />}
+            />
+
+            {/* Đăng ký học phần - STUDENT */}
+            <Route
+                path="/register-course"
+                element={
+                    <ProtectedRoute requiredRole="STUDENT">
+                        <RegisterCoursePage />
+                    </ProtectedRoute>
+                }
+            />
+
+            {/* Môn học đã đăng ký - STUDENT */}
+            <Route
+                path="/my-registrations"
+                element={
+                    <ProtectedRoute requiredRole="STUDENT">
+                        <MyRegistrationsPage />
+                    </ProtectedRoute>
+                }
             />
 
             {/* Quản lý môn học - ADMIN */}
@@ -66,12 +89,12 @@ function App() {
                 }
             />
 
-            {/* Đăng ký của tôi - STUDENT */}
+            {/* Quản lý API Key - ADMIN */}
             <Route
-                path="/my-registrations"
+                path="/admin/api-keys"
                 element={
-                    <ProtectedRoute requiredRole="STUDENT">
-                        <MyRegistrationsPage />
+                    <ProtectedRoute requiredRole="ADMIN">
+                        <ApiKeysPage />
                     </ProtectedRoute>
                 }
             />
@@ -86,6 +109,7 @@ function App() {
                     />
                 }
             />
+
         </Routes>
     );
 }

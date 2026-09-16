@@ -1,19 +1,32 @@
 import axiosClient from './axiosClient';
+
 import type {
     Registration,
     RegistrationRequest,
 } from '../types/registration';
 
-export const createRegistration = (data: RegistrationRequest) => {
-    return axiosClient.post<Registration>('/api/registrations', data);
+// Đăng ký học phần
+export const registerCourse = (
+    payload: RegistrationRequest,
+) => {
+    return axiosClient.post<Registration>(
+        '/api/registrations',
+        payload,
+    );
 };
 
-export const cancelRegistration = (id: number) => {
-    return axiosClient.delete(`/api/registrations/${id}`);
+// Hủy đăng ký
+export const cancelRegistration = (
+    id: number,
+) => {
+    return axiosClient.delete(
+        `/api/registrations/${id}`,
+    );
 };
 
-export const getRegistrationsByStudent = (studentId: number) => {
+// Lấy danh sách môn học của chính sinh viên đang đăng nhập
+export const getMyRegistrations = () => {
     return axiosClient.get<Registration[]>(
-        `/api/registrations/student/${studentId}`,
+        '/api/registrations/my',
     );
 };

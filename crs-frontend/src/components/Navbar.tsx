@@ -36,9 +36,15 @@ export default function Navbar() {
             {/* Chỉ ADMIN mới thấy */}
             {isLoggedIn &&
                 auth?.role === 'ADMIN' && (
-                    <Link to="/admin/courses">
-                        Quản lý môn học
-                    </Link>
+                    <>
+                        <Link to="/admin/courses">
+                            Quản lý môn học
+                        </Link>
+
+                        <Link to="/admin/api-keys">
+                            Quản lý API Key
+                        </Link>
+                    </>
                 )}
 
             {/* Chỉ STUDENT mới thấy */}
