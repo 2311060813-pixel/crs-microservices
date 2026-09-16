@@ -13,13 +13,17 @@ function LoginPage() {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
-    const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (
+        event: FormEvent<HTMLFormElement>,
+    ) => {
         event.preventDefault();
 
         setError('');
 
         if (!username.trim() || !password.trim()) {
-            setError('Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu.');
+            setError(
+                'Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu.',
+            );
             return;
         }
 
@@ -33,10 +37,17 @@ function LoginPage() {
 
             saveLogin(response.data);
 
-            navigate('/courses');
+            if (response.data.role === 'ADMIN') {
+                navigate('/admin/courses');
+            } else {
+                navigate('/courses');
+            }
         } catch (err) {
             console.error(err);
-            setError('Đăng nhập thất bại. Vui lòng kiểm tra lại tài khoản hoặc mật khẩu.');
+
+            setError(
+                'Đăng nhập thất bại. Vui lòng kiểm tra lại tài khoản hoặc mật khẩu.',
+            );
         } finally {
             setLoading(false);
         }
@@ -60,7 +71,8 @@ function LoginPage() {
                     background: '#ffffff',
                     padding: '32px',
                     borderRadius: '12px',
-                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+                    boxShadow:
+                        '0 4px 20px rgba(0, 0, 0, 0.08)',
                 }}
             >
                 <h1
@@ -99,7 +111,11 @@ function LoginPage() {
                             id="username"
                             type="text"
                             value={username}
-                            onChange={(event) => setUsername(event.target.value)}
+                            onChange={(event) =>
+                                setUsername(
+                                    event.target.value,
+                                )
+                            }
                             placeholder="Nhập tên đăng nhập"
                             disabled={loading}
                             style={{
@@ -128,7 +144,11 @@ function LoginPage() {
                             id="password"
                             type="password"
                             value={password}
-                            onChange={(event) => setPassword(event.target.value)}
+                            onChange={(event) =>
+                                setPassword(
+                                    event.target.value,
+                                )
+                            }
                             placeholder="Nhập mật khẩu"
                             disabled={loading}
                             style={{
@@ -163,14 +183,18 @@ function LoginPage() {
                             padding: '11px',
                             border: 'none',
                             borderRadius: '6px',
-                            cursor: loading ? 'not-allowed' : 'pointer',
+                            cursor: loading
+                                ? 'not-allowed'
+                                : 'pointer',
                             background: '#2563eb',
                             color: '#fff',
                             fontSize: '16px',
                             fontWeight: 600,
                         }}
                     >
-                        {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
+                        {loading
+                            ? 'Đang đăng nhập...'
+                            : 'Đăng nhập'}
                     </button>
                 </form>
 
@@ -184,11 +208,13 @@ function LoginPage() {
                     }}
                 >
                     <div>
-                        <strong>Admin:</strong> admin / admin123
+                        <strong>Admin:</strong> admin /
+                        admin123
                     </div>
 
                     <div style={{ marginTop: '6px' }}>
-                        <strong>Student:</strong> student1 / student123
+                        <strong>Student:</strong> student1 /
+                        student123
                     </div>
                 </div>
             </div>

@@ -1,5 +1,10 @@
-import { createContext, useContext, useEffect, useState } from 'react';
-import type { ReactNode } from 'react';
+import {
+    createContext,
+    useContext,
+    useState,
+    type ReactNode,
+} from 'react';
+
 import type { LoginResponse } from '../types/auth';
 
 interface AuthContextType {
@@ -9,41 +14,74 @@ interface AuthContextType {
     isLoggedIn: boolean;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext =
+    createContext<AuthContextType | undefined>(
+        undefined,
+    );
+
+const AUTH_KEY = 'crs_auth';
+const TOKEN_KEY = 'crs_token';
+const USER_KEY = 'crs_user';
 
 interface AuthProviderProps {
     children: ReactNode;
 }
 
-export function AuthProvider({ children }: AuthProviderProps) {
-    const [auth, setAuth] = useState<LoginResponse | null>(() => {
-        const savedAuth = localStorage.getItem('crs_auth');
+function getSavedAuth(): LoginResponse | null {
+    const savedAuth =
+        localStorage.getItem(AUTH_KEY);
 
-        if (!savedAuth) {
-            return null;
-        }
+    if (!savedAuth) {
+        return null;
+    }
 
-        try {
-            return JSON.parse(savedAuth) as LoginResponse;
-        } catch {
-            localStorage.removeItem('crs_auth');
-            return null;
-        }
-    });
+    try {
+        return JSON.parse(
+            savedAuth,
+        ) as LoginResponse;
+    } catch {
+        localStorage.removeItem(AUTH_KEY);
+        localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(USER_KEY);
+        return null;
+    }
+}
 
-    useEffect(() => {
-        if (auth) {
-            localStorage.setItem('crs_auth', JSON.stringify(auth));
-        } else {
-            localStorage.removeItem('crs_auth');
-        }
-    }, [auth]);
+export function AuthProvider({
+                                 children,
+                             }: AuthProviderProps) {
+    const [auth, setAuth] =
+        useState<LoginResponse | null>(
+            getSavedAuth,
+        );
 
     const login = (data: LoginResponse) => {
+        localStorage.setItem(
+            AUTH_KEY,
+            JSON.stringify(data),
+        );
+
+        localStorage.setItem(
+            TOKEN_KEY,
+            data.token,
+        );
+
+        localStorage.setItem(
+            USER_KEY,
+            JSON.stringify({
+                username: data.username,
+                role: data.role,
+            }),
+        );
+
         setAuth(data);
     };
 
     const logout = () => {
+        localStorage.removeItem(AUTH_KEY);
+        localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(USER_KEY);
+
         setAuth(null);
     };
 
@@ -61,11 +99,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
     );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth(): AuthContextType {
-    const context = useContext(AuthContext);
+    const context =
+        useContext(AuthContext);
 
     if (!context) {
-        throw new Error('useAuth phải được sử dụng bên trong AuthProvider');
+        throw new Error(
+            'useAuth phải được sử dụng bên trong AuthProvider',
+        );
     }
 
     return context;

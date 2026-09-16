@@ -1,60 +1,90 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
+
 import LoginPage from './pages/LoginPage';
-import CoursePage from './pages/CoursePage';
+import CoursesPage from './pages/CoursesPage';
 import MyRegistrationsPage from './pages/MyRegistrationsPage';
+import AdminCoursesPage from './pages/AdminCoursesPage';
+
+import ProtectedRoute from './components/ProtectedRoute';
 import { useAuth } from './context/AuthContext';
 
 function App() {
-    const { isLoggedIn } = useAuth();
+    const { auth, isLoggedIn } = useAuth();
 
     return (
         <Routes>
+            {/* Trang mặc định */}
             <Route
                 path="/"
                 element={
                     <Navigate
-                        to={isLoggedIn ? '/courses' : '/login'}
+                        to={
+                            !isLoggedIn
+                                ? '/login'
+                                : auth?.role === 'ADMIN'
+                                    ? '/admin/courses'
+                                    : '/courses'
+                        }
                         replace
                     />
                 }
             />
 
+            {/* Trang đăng nhập */}
             <Route
                 path="/login"
                 element={
-                    isLoggedIn ? (
-                        <Navigate to="/courses" replace />
-                    ) : (
+                    !isLoggedIn ? (
                         <LoginPage />
+                    ) : auth?.role === 'ADMIN' ? (
+                        <Navigate
+                            to="/admin/courses"
+                            replace
+                        />
+                    ) : (
+                        <Navigate
+                            to="/courses"
+                            replace
+                        />
                     )
                 }
             />
 
+            {/* Danh sách môn học - Public */}
             <Route
                 path="/courses"
+                element={<CoursesPage />}
+            />
+
+            {/* Quản lý môn học - ADMIN */}
+            <Route
+                path="/admin/courses"
                 element={
-                    isLoggedIn ? (
-                        <CoursePage />
-                    ) : (
-                        <Navigate to="/login" replace />
-                    )
+                    <ProtectedRoute requiredRole="ADMIN">
+                        <AdminCoursesPage />
+                    </ProtectedRoute>
                 }
             />
 
+            {/* Đăng ký của tôi - STUDENT */}
             <Route
                 path="/my-registrations"
                 element={
-                    isLoggedIn ? (
+                    <ProtectedRoute requiredRole="STUDENT">
                         <MyRegistrationsPage />
-                    ) : (
-                        <Navigate to="/login" replace />
-                    )
+                    </ProtectedRoute>
                 }
             />
 
+            {/* URL không tồn tại */}
             <Route
                 path="*"
-                element={<Navigate to="/" replace />}
+                element={
+                    <Navigate
+                        to="/"
+                        replace
+                    />
+                }
             />
         </Routes>
     );
