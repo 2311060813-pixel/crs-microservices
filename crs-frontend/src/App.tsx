@@ -1,35 +1,63 @@
-import { useEffect, useState } from 'react';
-import { getCourses } from './api/courseApi';
-import type { Course } from './types/course';
+import { Navigate, Route, Routes } from 'react-router-dom';
+import LoginPage from './pages/LoginPage';
+import CoursePage from './pages/CoursePage';
+import MyRegistrationsPage from './pages/MyRegistrationsPage';
+import { useAuth } from './context/AuthContext';
 
 function App() {
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [error, setError] = useState<string | null>(null);
+    const { isLoggedIn } = useAuth();
 
-  useEffect(() => {
-    getCourses()
-        .then((res) => {
-          setCourses(res.data.content);
-        })
-        .catch((err) => {
-          console.error(err);
-          setError(
-              'Khong ket noi duoc toi he thong. Kiem tra lai api-gateway da chay chua.'
-          );
-        });
-  }, []);
+    return (
+        <Routes>
+            <Route
+                path="/"
+                element={
+                    <Navigate
+                        to={isLoggedIn ? '/courses' : '/login'}
+                        replace
+                    />
+                }
+            />
 
-  return (
-      <div style={{ padding: 24, fontFamily: 'sans-serif' }}>
-        <h1>Kiem tra ket noi CRS qua Gateway</h1>
+            <Route
+                path="/login"
+                element={
+                    isLoggedIn ? (
+                        <Navigate to="/courses" replace />
+                    ) : (
+                        <LoginPage />
+                    )
+                }
+            />
 
-        {error && <p style={{ color: 'red' }}>{error}</p>}
+            <Route
+                path="/courses"
+                element={
+                    isLoggedIn ? (
+                        <CoursePage />
+                    ) : (
+                        <Navigate to="/login" replace />
+                    )
+                }
+            />
 
-        <pre>
-        {JSON.stringify(courses, null, 2)}
-      </pre>
-      </div>
-  );
+            <Route
+                path="/my-registrations"
+                element={
+                    isLoggedIn ? (
+                        <MyRegistrationsPage />
+                    ) : (
+                        <Navigate to="/login" replace />
+                    )
+                }
+            />
+
+            <Route
+                path="*"
+                element={<Navigate to="/" replace />}
+            />
+        </Routes>
+    );
 }
 
 export default App;

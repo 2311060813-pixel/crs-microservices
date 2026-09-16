@@ -8,6 +8,8 @@ import vn.edu.crs.registrationservice.dto.RegistrationRequestDTO;
 import vn.edu.crs.registrationservice.entity.Registration;
 import vn.edu.crs.registrationservice.service.RegistrationService;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/registrations")
 @RequiredArgsConstructor
@@ -21,6 +23,13 @@ public class RegistrationController {
             @Valid @RequestBody RegistrationRequestDTO dto) {
 
         return registrationService.register(dto);
+    }
+
+    @GetMapping("/student/{studentId}")
+    public List<Registration> getByStudent(
+            @PathVariable Long studentId) {
+
+        return registrationService.getByStudent(studentId);
     }
 
     @DeleteMapping("/{id}")

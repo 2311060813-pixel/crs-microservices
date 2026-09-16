@@ -8,6 +8,7 @@ import vn.edu.crs.registrationservice.entity.Registration;
 import vn.edu.crs.registrationservice.repository.RegistrationRepository;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.NoSuchElementException;
 
 @Service
@@ -42,6 +43,10 @@ public class RegistrationService {
         registration.setNgayDangKy(LocalDateTime.now());
 
         return registrationRepository.save(registration);
+    }
+
+    public List<Registration> getByStudent(Long studentId) {
+        return registrationRepository.findByStudentId(studentId);
     }
 
     public void cancel(Long registrationId) {
